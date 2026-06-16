@@ -428,6 +428,18 @@ const EDITOR_SCHEMA = [
     required: false,
     selector: { text: {} },
   },
+  {
+    name:     'language',
+    required: false,
+    selector: {
+      select: {
+        options: [
+          { value: 'en', label: 'English' },
+          { value: 'da', label: 'Dansk' },
+        ],
+      },
+    },
+  },
 ];
 
 const EDITOR_LABELS = {
@@ -436,6 +448,7 @@ const EDITOR_LABELS = {
   entity_distance: 'Distance entity (m, sensor to surface)',
   tank_capacity:   'Tank capacity (L)',
   title:           'Card title',
+  language:        'Language',
 };
 
 class WaterTankCardEditor extends HTMLElement {
@@ -472,9 +485,12 @@ class WaterTankCardEditor extends HTMLElement {
       });
     }
 
+    const supported = ['en', 'da'];
+    const autoLang  = supported.includes(this._hass.language) ? this._hass.language : 'en';
+
     this._form.hass         = this._hass;
-    this._form.data         = this._config;
     this._form.schema       = EDITOR_SCHEMA;
+    this._form.data         = { language: autoLang, ...this._config };
     this._form.computeLabel = s => EDITOR_LABELS[s.name] ?? s.name;
   }
 }
@@ -525,7 +541,7 @@ class WaterTankCard extends HTMLElement {
   /* -- i18n -- */
 
   _t(key) {
-    const lang = this._hass?.language || 'en';
+    const lang = this._config?.language || this._hass?.language || 'en';
     return (TRANSLATIONS[lang] ?? TRANSLATIONS.en)[key] ?? TRANSLATIONS.en[key] ?? key;
   }
 
