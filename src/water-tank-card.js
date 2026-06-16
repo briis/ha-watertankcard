@@ -13,6 +13,12 @@ const TRANSLATIONS = {
     distance:          'Distance',
     last_update:       'Last update',
     sensor_to_surface: 'Sensor to surface',
+    // editor field labels
+    editor_entity_level:    'Level entity (0–100 %)',
+    editor_entity_volume:   'Volume entity (L)',
+    editor_entity_distance: 'Distance entity (m, sensor to surface)',
+    editor_tank_capacity:   'Tank capacity (L)',
+    editor_title:           'Card title',
   },
   da: {
     title:             'Vandtank',
@@ -22,6 +28,12 @@ const TRANSLATIONS = {
     distance:          'Afstand',
     last_update:       'Sidst opdateret',
     sensor_to_surface: 'Sensor til overflade',
+    // editor field labels
+    editor_entity_level:    'Niveau entitet (0–100 %)',
+    editor_entity_volume:   'Volumen entitet (L)',
+    editor_entity_distance: 'Afstand entitet (m, sensor til overflade)',
+    editor_tank_capacity:   'Tankkapacitet (L)',
+    editor_title:           'Korttitel',
   },
 };
 
@@ -428,28 +440,12 @@ const EDITOR_SCHEMA = [
     required: false,
     selector: { text: {} },
   },
-  {
-    name:     'language',
-    required: false,
-    selector: {
-      select: {
-        options: [
-          { value: 'en', label: 'English' },
-          { value: 'da', label: 'Dansk' },
-        ],
-      },
-    },
-  },
 ];
 
-const EDITOR_LABELS = {
-  entity_level:    'Level entity (0–100 %)',
-  entity_volume:   'Volume entity (L)',
-  entity_distance: 'Distance entity (m, sensor to surface)',
-  tank_capacity:   'Tank capacity (L)',
-  title:           'Card title',
-  language:        'Language',
-};
+function editorLabel(lang, name) {
+  const t = TRANSLATIONS[lang] ?? TRANSLATIONS.en;
+  return t[`editor_${name}`] ?? TRANSLATIONS.en[`editor_${name}`] ?? name;
+}
 
 class WaterTankCardEditor extends HTMLElement {
   constructor() {
@@ -485,13 +481,12 @@ class WaterTankCardEditor extends HTMLElement {
       });
     }
 
-    const supported = ['en', 'da'];
-    const autoLang  = supported.includes(this._hass.language) ? this._hass.language : 'en';
+    const lang = this._hass.language;
 
     this._form.hass         = this._hass;
     this._form.schema       = EDITOR_SCHEMA;
-    this._form.data         = { language: autoLang, ...this._config };
-    this._form.computeLabel = s => EDITOR_LABELS[s.name] ?? s.name;
+    this._form.data         = this._config;
+    this._form.computeLabel = s => editorLabel(lang, s.name);
   }
 }
 
@@ -541,7 +536,7 @@ class WaterTankCard extends HTMLElement {
   /* -- i18n -- */
 
   _t(key) {
-    const lang = this._config?.language || this._hass?.language || 'en';
+    const lang = this._hass?.language || 'en';
     return (TRANSLATIONS[lang] ?? TRANSLATIONS.en)[key] ?? TRANSLATIONS.en[key] ?? key;
   }
 
