@@ -14,5 +14,16 @@ services:
     stdin_open: true
     tty: true
 
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ha-config:/config
+      - ./dist:/config/www/ha-watertankcard
+    ports:
+      - "8123:8123"
+    privileged: true
+    restart: unless-stopped
+
 volumes:
   node_modules:
+  ha-config:
