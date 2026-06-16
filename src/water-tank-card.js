@@ -400,6 +400,87 @@ const WAVE_D =
   'M0,10 C33,2 67,18 100,10 C133,2 167,18 200,10 ' +
   'C233,2 267,18 300,10 C333,2 367,18 400,10 L400,20 L0,20 Z';
 
+/* ---- UI Editor ---- */
+
+const EDITOR_SCHEMA = [
+  {
+    name:     'entity_level',
+    required: true,
+    selector: { entity: { domain: 'sensor' } },
+  },
+  {
+    name:     'entity_volume',
+    required: true,
+    selector: { entity: { domain: 'sensor' } },
+  },
+  {
+    name:     'entity_distance',
+    required: true,
+    selector: { entity: { domain: 'sensor' } },
+  },
+  {
+    name:     'tank_capacity',
+    required: false,
+    selector: { number: { min: 0, max: 99999, step: 1, mode: 'box', unit_of_measurement: 'L' } },
+  },
+  {
+    name:     'title',
+    required: false,
+    selector: { text: {} },
+  },
+];
+
+const EDITOR_LABELS = {
+  entity_level:    'Level entity (0–100 %)',
+  entity_volume:   'Volume entity (L)',
+  entity_distance: 'Distance entity (m, sensor to surface)',
+  tank_capacity:   'Tank capacity (L)',
+  title:           'Card title',
+};
+
+class WaterTankCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+    this._hass   = null;
+    this._form   = null;
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  _render() {
+    if (!this._hass) return;
+
+    if (!this._form) {
+      this.shadowRoot.innerHTML = '<ha-form></ha-form>';
+      this._form = this.shadowRoot.querySelector('ha-form');
+      this._form.addEventListener('value-changed', e => {
+        this.dispatchEvent(new CustomEvent('config-changed', {
+          detail: { config: e.detail.value },
+          bubbles: true,
+          composed: true,
+        }));
+      });
+    }
+
+    this._form.hass         = this._hass;
+    this._form.data         = this._config;
+    this._form.schema       = EDITOR_SCHEMA;
+    this._form.computeLabel = s => EDITOR_LABELS[s.name] ?? s.name;
+  }
+}
+
+customElements.define('water-tank-card-editor', WaterTankCardEditor);
+
 class WaterTankCard extends HTMLElement {
   constructor() {
     super();
@@ -436,6 +517,8 @@ class WaterTankCard extends HTMLElement {
   }
 
   getCardSize() { return 4; }
+
+  static getConfigElement() { return document.createElement('water-tank-card-editor'); }
 
   static getStubConfig() { return { ...DEFAULTS }; }
 
