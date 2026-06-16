@@ -59,10 +59,11 @@ Key pieces:
 
 | Symbol | Purpose |
 |---|---|
-| `TRANSLATIONS` | i18n strings for `en` and `da`; follows `hass.language` |
+| `TRANSLATIONS` | i18n strings for `en` and `da`; follows `hass.language`. Also contains `editor_*` keys used to translate field labels in the UI editor. |
+| `editorLabel(lang, name)` | Looks up an `editor_*` key from `TRANSLATIONS` for the given language; used by `computeLabel` in the editor. |
 | `DEFAULTS` | Default entity IDs and `tank_capacity: null` |
 | `STYLES` | Shadow DOM CSS (light/dark theme via CSS custom properties) |
-| `WaterTankCardEditor` | UI config editor — uses `ha-form` with `EDITOR_SCHEMA` |
+| `WaterTankCardEditor` | UI config editor — uses `ha-form` with `EDITOR_SCHEMA`. Field labels are translated automatically via `editorLabel`. |
 | `WaterTankCard` | The card itself; standard HA custom element API |
 
 ### HA card API surface
@@ -94,4 +95,7 @@ Key pieces:
 
 ## Adding a language
 
-Add a key block to `TRANSLATIONS` in `src/water-tank-card.js` and a matching option to the `<select id="langSelect">` in `dev-preview.html`.
+1. Add a key block to `TRANSLATIONS` in `src/water-tank-card.js` — include both the card strings and the `editor_*` label keys (copy the `en` block as a template).
+2. Add a matching option to the `<select id="langSelect">` in `dev-preview.html`.
+
+Language is detected automatically from `hass.language`; no config option is exposed to the user.
