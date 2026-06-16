@@ -8,21 +8,11 @@ services:
       - node_modules:/workspace/node_modules
     working_dir: /workspace
     ports:
-      - "5000:5000"
+      - "3000:3000"
     user: node
     command: sh -c "npm install && npm start"
     stdin_open: true
     tty: true
-
-  homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    volumes:
-      - ha-config:/config
-      - ./dist:/config/www/ha-watertankcard
-    ports:
-      - "8123:8123"
-    privileged: true
-    restart: unless-stopped
 
 volumes:
   node_modules:

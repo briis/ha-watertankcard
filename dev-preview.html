@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Tank Card — Dev Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+      font-family: sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ---- Theme variables ---- */
+    body.dark {
+      --bg: #111827;
+      --fg: #f3f4f6;
+      --card-bg: #1f2937;
+      --card-border: #374151;
+      --ha-card-background: #1f2937;
+      --primary-text-color: #f3f4f6;
+      --secondary-text-color: #9ca3af;
+      --divider-color: #374151;
+    }
+    body.light {
+      --bg: #f3f4f6;
+      --fg: #111827;
+      --card-bg: #ffffff;
+      --card-border: #e5e7eb;
+      --ha-card-background: #ffffff;
+      --primary-text-color: #111827;
+      --secondary-text-color: #6b7280;
+      --divider-color: #e5e7eb;
+    }
+
+    /* ---- Top bar ---- */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .toolbar h1 { margin: 0; font-size: 16px; font-weight: 600; flex: 1; }
+
+    label { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    input[type=range] { width: 120px; }
+    input[type=number] { width: 70px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--fg); }
+    button {
+      padding: 5px 14px; border-radius: 6px; border: 1px solid var(--card-border);
+      background: var(--card-bg); color: var(--fg); cursor: pointer; font-size: 13px;
+    }
+    button:hover { opacity: 0.8; }
+    select { padding: 4px 6px; border-radius: 4px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--fg); font-size: 13px; }
+
+    /* ---- Card wrapper ---- */
+    .card-wrap {
+      width: 100%;
+      max-width: 480px;
+      height: 300px;
+      /* Expose HA CSS custom properties so the card can use them */
+      --ha-card-background: var(--ha-card-background);
+      --primary-text-color: var(--primary-text-color);
+      --secondary-text-color: var(--secondary-text-color);
+      --divider-color: var(--divider-color);
+    }
+    water-tank-card {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Minimal ha-card shim */
+    ha-card {
+      display: block;
+      background: var(--ha-card-background, #1f2937);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      height: 100%;
+    }
+
+    .value-display { font-size: 12px; min-width: 38px; text-align: right; }
+  </style>
+</head>
+<body class="dark">
+
+  <div class="toolbar">
+    <h1>Water Tank Card — Dev Preview</h1>
+
+    <label>
+      Theme
+      <select id="themeSelect">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </label>
+
+    <label>
+      Lang
+      <select id="langSelect">
+        <option value="en">EN</option>
+        <option value="da">DA</option>
+      </select>
+    </label>
+
+    <label>
+      Level&nbsp;<span class="value-display" id="levelDisplay">72%</span>
+      <input type="range" id="levelSlider" min="0" max="100" value="72" />
+    </label>
+
+    <label>
+      Volume (L)
+      <input type="number" id="volumeInput" value="1440" min="0" max="9999" />
+    </label>
+
+    <label>
+      Distance (m)
+      <input type="number" id="distanceInput" value="0.56" min="0" max="10" step="0.01" />
+    </label>
+
+    <label>
+      Capacity (L)
+      <input type="number" id="capacityInput" value="2000" min="0" max="99999" />
+    </label>
+
+    <button id="animateBtn">Animate fill</button>
+  </div>
+
+  <div class="card-wrap">
+    <water-tank-card></water-tank-card>
+  </div>
+
+  <!-- Minimal ha-card custom element shim -->
+  <script>
+    customElements.define('ha-card', class extends HTMLElement {
+      connectedCallback() {
+        this.style.display = 'block';
+      }
+    });
+  </script>
+
+  <script type="module" src="/dist/water-tank-card.js"></script>
+
+  <script>
+    const card = document.querySelector('water-tank-card');
+
+    const CONFIG = {
+      entity_level:    'sensor.water_tank_level',
+      entity_volume:   'sensor.water_tank_volume',
+      entity_distance: 'sensor.water_tank_distance',
+      tank_capacity:   2000,
+    };
+
+    function makeHass(level, volume, distance, lang) {
+      const now = new Date().toISOString();
+      return {
+        language: lang,
+        states: {
+          'sensor.water_tank_level': {
+            state: String(level),
+            attributes: { unit_of_measurement: '%', friendly_name: 'Water Tank Level' },
+            last_changed: now,
+            last_updated: now,
+          },
+          'sensor.water_tank_volume': {
+            state: String(volume),
+            attributes: { unit_of_measurement: 'L', friendly_name: 'Water Tank Volume' },
+            last_changed: now,
+            last_updated: now,
+          },
+          'sensor.water_tank_distance': {
+            state: String(distance),
+            attributes: { unit_of_measurement: 'm', friendly_name: 'Water Tank Distance' },
+            last_changed: now,
+            last_updated: now,
+          },
+        },
+      };
+    }
+
+    function getValues() {
+      return {
+        level:    Number(document.getElementById('levelSlider').value),
+        volume:   Number(document.getElementById('volumeInput').value),
+        distance: Number(document.getElementById('distanceInput').value),
+        lang:     document.getElementById('langSelect').value,
+      };
+    }
+
+    function pushUpdate() {
+      const { level, volume, distance, lang } = getValues();
+      const capacity = Number(document.getElementById('capacityInput').value);
+      CONFIG.tank_capacity = capacity;
+      try {
+        card.setConfig({ ...CONFIG });
+      } catch (_) {}
+      card.hass = makeHass(level, volume, distance, lang);
+    }
+
+    // Wait for custom element to be defined before first push
+    customElements.whenDefined('water-tank-card').then(() => {
+      pushUpdate();
+    });
+
+    // Controls
+    document.getElementById('levelSlider').addEventListener('input', e => {
+      document.getElementById('levelDisplay').textContent = e.target.value + '%';
+      pushUpdate();
+    });
+    ['volumeInput', 'distanceInput', 'capacityInput'].forEach(id => {
+      document.getElementById(id).addEventListener('input', pushUpdate);
+    });
+    document.getElementById('langSelect').addEventListener('change', pushUpdate);
+
+    document.getElementById('themeSelect').addEventListener('change', e => {
+      document.body.className = e.target.value;
+    });
+
+    // Animate: sweep level from 0 → 100 over 4 s
+    document.getElementById('animateBtn').addEventListener('click', () => {
+      const slider = document.getElementById('levelSlider');
+      const display = document.getElementById('levelDisplay');
+      let v = 0;
+      slider.value = 0;
+      const iv = setInterval(() => {
+        v = Math.min(100, v + 1);
+        slider.value = v;
+        display.textContent = v + '%';
+        document.getElementById('volumeInput').value = Math.round(v * 20);
+        pushUpdate();
+        if (v >= 100) clearInterval(iv);
+      }, 40);
+    });
+  </script>
+</body>
+</html>
