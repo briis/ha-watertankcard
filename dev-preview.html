@@ -52,6 +52,7 @@
     label { font-size: 13px; display: flex; align-items: center; gap: 6px; }
     input[type=range] { width: 120px; }
     input[type=number] { width: 70px; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--fg); }
+    input[readonly] { opacity: 0.5; cursor: default; }
     button {
       padding: 5px 14px; border-radius: 6px; border: 1px solid var(--card-border);
       background: var(--card-bg); color: var(--fg); cursor: pointer; font-size: 13px;
@@ -116,7 +117,7 @@
 
     <label>
       Volume (L)
-      <input type="number" id="volumeInput" value="1440" min="0" max="9999" />
+      <input type="number" id="volumeInput" value="1440" readonly />
     </label>
 
     <label>
@@ -184,10 +185,18 @@
       };
     }
 
+    function calcVolume(level, capacity) {
+      return Math.round(level / 100 * capacity);
+    }
+
     function getValues() {
+      const level    = Number(document.getElementById('levelSlider').value);
+      const capacity = Number(document.getElementById('capacityInput').value);
+      const volume   = calcVolume(level, capacity);
+      document.getElementById('volumeInput').value = volume;
       return {
-        level:    Number(document.getElementById('levelSlider').value),
-        volume:   Number(document.getElementById('volumeInput').value),
+        level,
+        volume,
         distance: Number(document.getElementById('distanceInput').value),
         lang:     document.getElementById('langSelect').value,
       };
@@ -213,7 +222,7 @@
       document.getElementById('levelDisplay').textContent = e.target.value + '%';
       pushUpdate();
     });
-    ['volumeInput', 'distanceInput', 'capacityInput'].forEach(id => {
+    ['distanceInput', 'capacityInput'].forEach(id => {
       document.getElementById(id).addEventListener('input', pushUpdate);
     });
     document.getElementById('langSelect').addEventListener('change', pushUpdate);
@@ -232,7 +241,6 @@
         v = Math.min(100, v + 1);
         slider.value = v;
         display.textContent = v + '%';
-        document.getElementById('volumeInput').value = Math.round(v * 20);
         pushUpdate();
         if (v >= 100) clearInterval(iv);
       }, 40);
