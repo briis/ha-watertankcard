@@ -11,14 +11,23 @@ const TRANSLATIONS = {
     level:             'Level',
     volume:            'Volume',
     distance:          'Distance',
+    voltage:           'Voltage',
+    pressure:          'Pressure',
+    temperature:       'Temperature',
+    humidity:          'Humidity',
     last_update:       'Last update',
-    sensor_to_surface: 'Sensor to surface',
+    sensor_to_surface:        'Sensor to surface',
+    sensor_desc_voltage:      'Sensor voltage',
+    sensor_desc_pressure:     'Pressure reading',
+    sensor_desc_temperature:  'Temperature reading',
+    sensor_desc_humidity:     'Humidity reading',
     // editor field labels
-    editor_entity_level:    'Level entity (0–100 %)',
-    editor_entity_volume:   'Volume entity (L)',
-    editor_entity_distance: 'Distance entity (m, sensor to surface)',
-    editor_tank_capacity:   'Tank capacity (L)',
-    editor_title:           'Card title',
+    editor_entity_level:       'Level entity (0–100 %)',
+    editor_entity_volume:      'Volume entity (L)',
+    editor_extra_sensor_type:  'Third sensor type',
+    editor_entity_distance:    'Third sensor entity',
+    editor_tank_capacity:      'Tank capacity (L)',
+    editor_title:              'Card title',
   },
   da: {
     title:             'Vandtank',
@@ -26,22 +35,40 @@ const TRANSLATIONS = {
     level:             'Niveau',
     volume:            'Volumen',
     distance:          'Afstand',
+    voltage:           'Spænding',
+    pressure:          'Tryk',
+    temperature:       'Temperatur',
+    humidity:          'Fugtighed',
     last_update:       'Sidst opdateret',
-    sensor_to_surface: 'Sensor til overflade',
+    sensor_to_surface:        'Sensor til overflade',
+    sensor_desc_voltage:      'Sensor spænding',
+    sensor_desc_pressure:     'Trykaflæsning',
+    sensor_desc_temperature:  'Temperaturaflæsning',
+    sensor_desc_humidity:     'Fugtighedsaflæsning',
     // editor field labels
-    editor_entity_level:    'Niveau entitet (0–100 %)',
-    editor_entity_volume:   'Volumen entitet (L)',
-    editor_entity_distance: 'Afstand entitet (m, sensor til overflade)',
-    editor_tank_capacity:   'Tankkapacitet (L)',
-    editor_title:           'Korttitel',
+    editor_entity_level:       'Niveau entitet (0–100 %)',
+    editor_entity_volume:      'Volumen entitet (L)',
+    editor_extra_sensor_type:  'Tredje sensor type',
+    editor_entity_distance:    'Tredje sensor entitet',
+    editor_tank_capacity:      'Tankkapacitet (L)',
+    editor_title:              'Korttitel',
   },
 };
 
 const DEFAULTS = {
-  entity_level:    'sensor.water_tank_monitor_water_tank_level',
-  entity_volume:   'sensor.water_tank_monitor_water_tank_volume',
-  entity_distance: 'sensor.water_tank_monitor_water_tank_distance',
-  tank_capacity:   null,
+  entity_level:      'sensor.water_tank_monitor_water_tank_level',
+  entity_volume:     'sensor.water_tank_monitor_water_tank_volume',
+  entity_distance:   null,
+  extra_sensor_type: 'distance',
+  tank_capacity:     null,
+};
+
+const EXTRA_SENSOR_TYPES = {
+  distance:    { icon: 'mdi:ruler',          descKey: 'sensor_to_surface',       format: v => v.toFixed(2) },
+  voltage:     { icon: 'mdi:lightning-bolt', descKey: 'sensor_desc_voltage',     format: v => v.toFixed(2) },
+  pressure:    { icon: 'mdi:gauge',          descKey: 'sensor_desc_pressure',    format: v => v.toFixed(1) },
+  temperature: { icon: 'mdi:thermometer',   descKey: 'sensor_desc_temperature', format: v => v.toFixed(1) },
+  humidity:    { icon: 'mdi:water-percent', descKey: 'sensor_desc_humidity',    format: v => v.toFixed(1) },
 };
 
 const STYLES = `
@@ -426,8 +453,23 @@ const EDITOR_SCHEMA = [
     selector: { entity: { domain: 'sensor' } },
   },
   {
+    name:     'extra_sensor_type',
+    required: false,
+    selector: {
+      select: {
+        options: [
+          { value: 'distance',    label: 'Distance' },
+          { value: 'voltage',     label: 'Voltage' },
+          { value: 'pressure',    label: 'Pressure' },
+          { value: 'temperature', label: 'Temperature' },
+          { value: 'humidity',    label: 'Humidity' },
+        ],
+      },
+    },
+  },
+  {
     name:     'entity_distance',
-    required: true,
+    required: false,
     selector: { entity: { domain: 'sensor' } },
   },
   {
@@ -629,8 +671,8 @@ class WaterTankCard extends HTMLElement {
               </div>
             </div>
 
-            <div class="stat-card">
-              <div class="c-icon orange"><ha-icon icon="mdi:ruler"></ha-icon></div>
+            <div class="stat-card" id="stat-extra">
+              <div class="c-icon orange"><ha-icon id="icon-extra" icon="mdi:ruler"></ha-icon></div>
               <div class="c-info">
                 <div class="c-label" id="lbl-distance"></div>
                 <div class="c-value" id="val-distance">—</div>
@@ -658,7 +700,6 @@ class WaterTankCard extends HTMLElement {
 
     const levelNum  = this._num(this._config.entity_level);
     const volumeNum = this._num(this._config.entity_volume);
-    const distNum   = this._num(this._config.entity_distance);
     const pct       = isNaN(levelNum) ? 0 : Math.max(0, Math.min(100, levelNum));
     const $         = id => this.shadowRoot.getElementById(id);
 
@@ -667,9 +708,8 @@ class WaterTankCard extends HTMLElement {
     $('s-subtitle').textContent = this._t('subtitle');
 
     // Stat labels
-    $('lbl-level').textContent    = this._t('level').toUpperCase();
-    $('lbl-volume').textContent   = this._t('volume').toUpperCase();
-    $('lbl-distance').textContent = this._t('distance').toUpperCase();
+    $('lbl-level').textContent  = this._t('level').toUpperCase();
+    $('lbl-volume').textContent = this._t('volume').toUpperCase();
 
     // Water fill height + colour
     const fill = $('water-fill');
@@ -701,11 +741,26 @@ class WaterTankCard extends HTMLElement {
     $('val-volume').textContent = isNaN(volumeNum) ? '—' : Math.round(volumeNum).toLocaleString();
     $('sub-volume').textContent = volUnit;
 
-    // Distance stat card
-    const distState = this._hass.states[this._config.entity_distance];
-    const distUnit  = distState?.attributes?.unit_of_measurement ?? 'm';
-    $('val-distance').textContent = isNaN(distNum) ? '—' : distNum.toFixed(2);
-    $('sub-distance').textContent = `${this._t('sensor_to_surface')} · ${distUnit}`;
+    // Extra stat card (3rd widget — shown only when an entity is configured)
+    const extraEntity = this._config.entity_distance;
+    const extraCard   = $('stat-extra');
+    if (!extraEntity) {
+      if (extraCard) extraCard.style.display = 'none';
+    } else {
+      if (extraCard) extraCard.style.display = '';
+      const extraType  = this._config.extra_sensor_type || 'distance';
+      const typeCfg    = EXTRA_SENSOR_TYPES[extraType] || EXTRA_SENSOR_TYPES.distance;
+      const extraState = this._hass.states[extraEntity];
+      const extraNum   = this._num(extraEntity);
+      const extraUnit  = extraState?.attributes?.unit_of_measurement ?? '';
+
+      const iconEl = $('icon-extra');
+      if (iconEl) iconEl.setAttribute('icon', typeCfg.icon);
+
+      $('lbl-distance').textContent = this._t(extraType).toUpperCase();
+      $('val-distance').textContent = isNaN(extraNum) ? '—' : typeCfg.format(extraNum);
+      $('sub-distance').textContent = `${this._t(typeCfg.descKey)} · ${extraUnit}`;
+    }
 
     // Footer timestamp
     const lvlState = this._hass.states[this._config.entity_level];
