@@ -2,7 +2,7 @@
 
 ## What this project is
 
-A Home Assistant custom Lovelace card distributed via HACS (as a custom repository, not in the default store). It displays water tank status — fill level, volume, and sensor-to-surface distance — as an animated visual card.
+A Home Assistant custom Lovelace card distributed via HACS (as a custom repository, not in the default store). It displays water tank status — fill level, volume, and an optional third sensor — as an animated visual card.
 
 GitHub: https://github.com/briis/ha-watertankcard
 
@@ -29,7 +29,7 @@ Runs inside a VS Code devcontainer (see `.devcontainer/`). The container is star
 npm start          # rollup --watch + serve on :3000 (run inside the container)
 ```
 
-Open http://localhost:3000/dev-preview.html to preview the card live with sliders for level, volume, distance, capacity, theme, and language.
+Open http://localhost:3000/dev-preview.html to preview the card live with sliders for level, volume, capacity, a sensor type selector, an extra sensor value input, theme, and language.
 
 `docker-compose.yml` is an alternative entry point (maps `3000:3000`), but normal dev happens via the VS Code devcontainer.
 
@@ -61,7 +61,8 @@ Key pieces:
 |---|---|
 | `TRANSLATIONS` | i18n strings for `en` and `da`; follows `hass.language`. Also contains `editor_*` keys used to translate field labels in the UI editor. |
 | `editorLabel(lang, name)` | Looks up an `editor_*` key from `TRANSLATIONS` for the given language; used by `computeLabel` in the editor. |
-| `DEFAULTS` | Default entity IDs and `tank_capacity: null` |
+| `DEFAULTS` | Default entity IDs, `extra_sensor_type: 'distance'`, and `tank_capacity: null`. `entity_distance` defaults to `null` so the third widget is hidden on new cards. |
+| `EXTRA_SENSOR_TYPES` | Map of sensor type → `{ icon, descKey, format }`. Drives the third stat card's icon, description, and value formatting. |
 | `STYLES` | Shadow DOM CSS (light/dark theme via CSS custom properties) |
 | `WaterTankCardEditor` | UI config editor — uses `ha-form` with `EDITOR_SCHEMA`. Field labels are translated automatically via `editorLabel`. |
 | `WaterTankCard` | The card itself; standard HA custom element API |
@@ -81,7 +82,8 @@ Key pieces:
 |---|---|---|---|
 | `entity_level` | string | `sensor.water_tank_monitor_water_tank_level` | Sensor in `%` |
 | `entity_volume` | string | `sensor.water_tank_monitor_water_tank_volume` | Sensor in `L` |
-| `entity_distance` | string | `sensor.water_tank_monitor_water_tank_distance` | Sensor in `m` |
+| `extra_sensor_type` | string | `'distance'` | Type of the third widget: `distance`, `voltage`, `pressure`, `temperature`, `humidity` |
+| `entity_distance` | string | `null` | Third sensor entity. Widget is hidden when `null` or empty. |
 | `tank_capacity` | number | `null` | When set, shows "X / Y L" |
 | `title` | string | `Water Tank` / `Vandtank` | Card title |
 
@@ -95,7 +97,13 @@ Key pieces:
 
 ## Adding a language
 
-1. Add a key block to `TRANSLATIONS` in `src/water-tank-card.js` — include both the card strings and the `editor_*` label keys (copy the `en` block as a template).
+1. Add a key block to `TRANSLATIONS` in `src/water-tank-card.js` — copy the `en` block as a template. Include the card strings, the `sensor_desc_*` keys for each extra sensor type, and the `editor_*` label keys.
 2. Add a matching option to the `<select id="langSelect">` in `dev-preview.html`.
 
 Language is detected automatically from `hass.language`; no config option is exposed to the user.
+
+## Adding a new third-sensor type
+
+1. Add the type to `EXTRA_SENSOR_TYPES` in `src/water-tank-card.js` with an `icon` (MDI icon name), `descKey` (translation key for the description label), and `format` function.
+2. Add the matching label key (e.g. `voltage`) and `sensor_desc_*` key to both language blocks in `TRANSLATIONS`.
+3. Add the new `{ value, label }` entry to the `extra_sensor_type` select options in `EDITOR_SCHEMA`.
